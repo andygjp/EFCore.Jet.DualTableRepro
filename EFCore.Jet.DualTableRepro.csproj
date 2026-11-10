@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net11.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <!-- The process must have the same architecture as the Access ODBC driver, which is the architecture of the
+        Office that installed it. 64-bit Office is the default; pass -r win-x86 for 32-bit Office. On Windows on ARM,
+        win-x64 runs under emulation. -->
+        <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RuntimeIdentifier>
+        <SelfContained>true</SelfContained>
+        <!-- For LibraryImport, which creates the database with the ODBC driver -->
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="EntityFrameworkCore.Jet.Odbc" Version="11.0.0-alpha.5"/>
+    </ItemGroup>
+
+</Project>
