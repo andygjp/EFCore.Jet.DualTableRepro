@@ -18,7 +18,7 @@ FROM (SELECT COUNT(*) FROM `#Dual`)
 an alternative (`MSysAccessStorage`, `MSysRelationships`), so an application using a database made by Access gets:
 
 ```
-ERROR [42S02] [Microsoft][ODBC Microsoft Access Driver] The Microsoft Jet database engine cannot find the input table or query '#Dual'.  Make sure it exists and that its name is spelled correctly.
+ERROR [42S02] [Microsoft][ODBC Microsoft Access Driver] The Microsoft Access database engine cannot find the input table or query '#Dual'. Make sure it exists and that its name is spelled correctly.
 ```
 
 ## What it does
@@ -30,7 +30,7 @@ ERROR [42S02] [Microsoft][ODBC Microsoft Access Driver] The Microsoft Jet databa
    1. `Notes.Any(x => x.Id == id)`, which fails.
    2. `Notes.Count(x => x.Id == id) > 0`, which reads `FROM Notes` and so runs. This is the workaround we use.
    3. `Notes.Any(...)` with `JetDualTable.CustomName = "MSysRelationships"`, the alternative the provider's comments
-      suggest. Whether it runs depends on whether the user may read that system table.
+      suggest, which fails too: the default user may not read that system table.
    4. The first query again, after creating `#Dual` with one row, as `EnsureDualTable` does.
 
 EF logs the SQL of each command that fails, so the output also shows the `FROM (SELECT COUNT(*) FROM #Dual)`.
@@ -66,14 +66,32 @@ dotnet run -- C:\path\to\Empty.mdb
 If you get `ERROR [IM003] Specified driver could not be loaded due to system error 193`, the process and the driver
 have different architectures: use the other `-r`.
 
-## Expected output
+## Output
 
-After the logged SQL of the failing commands:
+From a run on Windows 11 on ARM, as x64, with the driver from Microsoft 365 (Office 16, x64):
 
 ```
+Process architecture: X64
+Database: C:\Users\andrewpattison\AppData\Local\Temp\DualTableRepro-20261110-170910.mdb
+JetDualTable.Name: #Dual
+
+fail: 10/11/2026 17:09:17.947 RelationalEventId.CommandError[20102] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Failed executing DbCommand (29ms) [Parameters=[@id='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM `Notes` AS `n`
+          WHERE `n`.`Id` = @id)
+      FROM (SELECT COUNT(*) FROM `#Dual`)
+fail: 10/11/2026 17:09:18.646 RelationalEventId.CommandError[20102] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Failed executing DbCommand (7ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM `Notes` AS `n`
+          WHERE `n`.`Body` = 'a note')
+      FROM (SELECT COUNT(*) FROM `MSysRelationships`)
 Query:   Notes.Any(x => x.Id == id)
 Setup:   no #Dual table
-Outcome: FAILED: ERROR [42S02] [Microsoft][ODBC Microsoft Access Driver] The Microsoft Jet database engine cannot find the input table or query '#Dual'.  Make sure it exists and that its name is spelled correctly.
+Outcome: FAILED: ERROR [42S02] [Microsoft][ODBC Microsoft Access Driver] The Microsoft Access database engine cannot find the input table or query '#Dual'. Make sure it exists and that its name is spelled correctly.
 
 Query:   Notes.Count(x => x.Id == id) > 0
 Setup:   no #Dual table
@@ -81,7 +99,7 @@ Outcome: returned True
 
 Query:   Notes.Any(x => x.Body == body)
 Setup:   JetDualTable.CustomName = "MSysRelationships"
-Outcome: returned True, or FAILED if the user can't read MSysRelationships
+Outcome: FAILED: ERROR [42000] [Microsoft][ODBC Microsoft Access Driver] Record(s) cannot be read; no read permission on 'MSysRelationships'.
 
 Query:   Notes.Any(x => x.Id == id)
 Setup:   #Dual table created as the provider creates it
