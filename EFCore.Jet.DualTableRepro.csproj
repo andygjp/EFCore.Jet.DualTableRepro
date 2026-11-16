@@ -15,7 +15,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="EntityFrameworkCore.Jet.Odbc" Version="11.0.0-alpha.5"/>
+        <PackageReference Include="EntityFrameworkCore.Jet.Odbc" Version="11.0.0-beta.1"/>
     </ItemGroup>
 
 </Project>

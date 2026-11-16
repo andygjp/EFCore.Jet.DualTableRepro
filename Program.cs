@@ -5,9 +5,10 @@ using EntityFrameworkCore.Jet.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
-// Shows that EntityFrameworkCore.Jet can't run a query with no table of its own, such as a top-level Any(), against
-// an Access database it didn't create: the SQL reads from a one-row `#Dual` table, which only a database the provider
-// creates has, so Access answers "cannot find the input table or query '#Dual'".
+// Shows whether EntityFrameworkCore.Jet can run a query with no table of its own, such as a top-level Any(), against
+// an Access database it didn't create. Up to 11.0.0-alpha.5, the SQL read from a one-row `#Dual` table, which only a
+// database the provider creates has, so Access answered "cannot find the input table or query '#Dual'". Since
+// 11.0.0-beta.1, without `#Dual` the provider reads from the first table the query itself reads.
 //
 // Usage: EFCore.Jet.DualTableRepro [path to an existing, empty .mdb or .accdb]
 // Without a path, it creates a new Access 2000 format .mdb in the temp folder.
@@ -50,7 +51,7 @@ internal static class Repro
             Attempt("Notes.Count(x => x.Id == id) > 0", "no #Dual table",
                 () => Query(connectionString, x => x.Notes.Count(n => n.Id == id) > 0)),
 
-            // A query of another shape, because EF caches the SQL of the first one, with `#Dual` in it
+            // A query of another shape, because EF caches the SQL of the first one, with its stand-in table in it
             Attempt("Notes.Any(x => x.Body == body)", "JetDualTable.CustomName = \"MSysRelationships\"", () =>
             {
                 JetDualTable.CustomName = "MSysRelationships";
